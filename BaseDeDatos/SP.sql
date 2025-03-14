@@ -1025,3 +1025,42 @@ BEGIN
     END CATCH
 END;
 GO
+
+
+--SP para crear un juego
+CREATE OR ALTER PROCEDURE SP_CREAR_JUEGO
+    @ID_CUIDADOR INT,
+    @NOMBRE VARCHAR(255),
+    @ID_RETURN INT OUTPUT,
+    @ERROR_ID INT OUTPUT,
+    @ERROR_DESCRIPTION NVARCHAR(MAX) OUTPUT
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        -- Validar que el usuario sea un cuidador
+        IF NOT EXISTS (SELECT 1 FROM USUARIO WHERE ID_USUARIO = @ID_CUIDADOR AND ID_TIPO_USUARIO = 2)
+        BEGIN
+            SET @ID_RETURN = -1;
+            SET @ERROR_ID = 1;
+            SET @ERROR_DESCRIPTION = 'El usuario no es un cuidador o no existe';
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        -- Insertar el juego
+        INSERT INTO JUEGO (NOMBRE, ID_USUARIO_CREADOR)
+        VALUES (@NOMBRE, @ID_CUIDADOR);
+
+        SET @ID_RETURN = SCOPE_IDENTITY(); -- Obtener el ID del juego creado
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        SET @ID_RETURN = -1;
+        SET @ERROR_ID = ERROR_NUMBER();
+        SET @ERROR_DESCRIPTION = ERROR_MESSAGE();
+    END CATCH
+END;
